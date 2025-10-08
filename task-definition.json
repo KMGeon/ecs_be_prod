@@ -1,0 +1,40 @@
+{
+  "family": "ecs_be_prod",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "3072",
+  "executionRoleArn": "arn:aws:iam::949653644001:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "ecs_be_prod_container",
+      "image": "949653644001.dkr.ecr.ap-northeast-2.amazonaws.com/ecs-be-prod:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "REDIS_HOST",
+          "value": "redis://redis-6379-tcp.my-app:6379"
+        },
+        {
+          "name": "REDIS_PORT",
+          "value": "6379"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/ecs_be_prod",
+          "awslogs-create-group": "true",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

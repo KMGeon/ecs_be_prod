@@ -1,0 +1,100 @@
+name: Deploy to Amazon ECS (Complete CD)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image version tag (e.g., 0.2541.135 or latest)'
+        required: true
+        default: 'latest'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: ecs-be-prod
+  ECS_SERVICE: ecs_be_prod-service        # TODO: ECS 서비스 이름으로 변경
+  ECS_CLUSTER: my-cluster                 # TODO: ECS 클러스터 이름으로 변경
+  ECS_TASK_DEFINITION: ./task-definition.json
+  CONTAINER_NAME: ecs_be_prod_container   # TODO: 컨테이너 이름으로 변경
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: DEV
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::949653644001:role/github_Mugeon_ecs_test_OIDC
+          role-session-name: GitHubActions-ECS-Deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image URI
+        id: set-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          IMAGE_URI="${ECR_REGISTRY}/${{ env.ECR_REPOSITORY }}:${{ github.event.inputs.version }}"
+          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "📦 Deploying image: $IMAGE_URI"
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.set-image.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Create deployment tag
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const version = '${{ github.event.inputs.version }}';
+            const tag = `ecs-deploy-${version}`;
+            try {
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/tags/${tag}`,
+                sha: context.sha
+              });
+              console.log(`Tag ${tag} created successfully.`);
+            } catch (error) {
+              if (error.status === 422) {
+                console.log(`Tag ${tag} already exists. Skipping tag creation.`);
+              } else {
+                throw error;
+              }
+            }
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "📦 Image: ${{ steps.set-image.outputs.image }}"
+          echo "🎯 Service: ${{ env.ECS_SERVICE }}"
+          echo "🏗️ Cluster: ${{ env.ECS_CLUSTER }}"
+          echo "🏷️ Tag: ecs-deploy-${{ github.event.inputs.version }}"
