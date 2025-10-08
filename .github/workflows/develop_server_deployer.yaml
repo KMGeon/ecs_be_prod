@@ -14,7 +14,7 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 env:
   AWS_REGION: ap-northeast-2
@@ -101,10 +101,10 @@ jobs:
                 ref: `refs/tags/${tag}`,
                 sha: context.sha
               });
-              console.log(`Tag ${tag} created successfully.`);
+              console.log(`✅ Tag ${tag} created successfully.`);
             } catch (error) {
               if (error.status === 422) {
-                console.log(`Tag ${tag} already exists. Skipping tag creation.`);
+                console.log(`⚠️ Tag ${tag} already exists. Skipping tag creation.`);
               } else {
                 throw error;
               }
