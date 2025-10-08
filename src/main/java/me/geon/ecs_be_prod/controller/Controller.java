@@ -24,6 +24,11 @@ public class Controller {
         return "Hello World!";
     }
 
+    @GetMapping("/test2")
+    public String test2() {
+        return "Hello World2!";
+    }
+
 
     @GetMapping("/test")
     public String test() {
@@ -35,37 +40,5 @@ public class Controller {
             return "Redis ping failed: " + e.getMessage();
         }
     }
-
-    @GetMapping("/env")
-    public Map<String, Object> getEnvironmentInfo() {
-        Map<String, Object> envInfo = new HashMap<>();
-        
-        try {
-            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-            Map<String, String> dotenvVars = new HashMap<>();
-            
-            dotenv.entries().forEach(entry -> {
-                dotenvVars.put(entry.getKey(), entry.getValue());
-            });
-            
-            envInfo.put("dotenv_file_loaded", true);
-            envInfo.put("dotenv_variables", dotenvVars);
-            envInfo.put("total_variables", dotenvVars.size());
-        } catch (Exception e) {
-            envInfo.put("dotenv_file_loaded", false);
-            envInfo.put("error", e.getMessage());
-            envInfo.put("total_variables", 0);
-        }
-        
-        return envInfo;
-    }
-
-//    // todo : for ha infra test api
-//    @GetMapping("/crash")
-//    public String crash() {
-//        System.out.println("crashing server!");
-//        System.exit(0);
-//        return "Server is shutting down...";
-//    }
 
 }
