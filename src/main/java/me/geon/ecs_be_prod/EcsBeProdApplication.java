@@ -23,4 +23,5 @@ public class EcsBeProdApplication {
         SpringApplication.run(EcsBeProdApplication.class, args);
     }
 
+
 }
