@@ -30,6 +30,11 @@ public class Controller {
     }
 
 
+    @GetMapping("/test3")
+    public String test3() {
+        return "Hello World3!";
+    }
+
     @GetMapping("/test")
     public String test() {
         try {
