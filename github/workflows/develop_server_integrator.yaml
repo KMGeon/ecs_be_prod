@@ -1,0 +1,36 @@
+name: Develop Server Integrator (CI)
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      head:
+        description: 'Head version number'
+        required: true
+        default: '0'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Out Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::949653644001:role/github_Mugeon_ecs_test_OIDC
+          role-session-name: GitHubActions-ECS-Deploy-${{ github.run_id }}
+          aws-region: ap-northeast-2
+
+      - name: Verify AWS Authentication
+        run: |
+          echo "🔐 Testing AWS Authentication..."
+          aws sts get-caller-identity
+          echo "✅ AWS Authentication successful!"
