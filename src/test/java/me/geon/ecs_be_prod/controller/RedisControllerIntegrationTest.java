@@ -40,6 +40,7 @@ class RedisControllerIntegrationTest {
     private RedisTemplate<String, Object> redisTemplate;
 
 
+
     @BeforeEach
     void setUp() {
         redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
