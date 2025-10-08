@@ -5,7 +5,6 @@ plugins {
 }
 
 group = "me.geon"
-version = "0.0.1-SNAPSHOT"
 description = "ecs_be_prod"
 
 java {
@@ -20,7 +19,12 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.apache.commons:commons-pool2")
+    implementation("io.github.cdimascio:dotenv-java:3.0.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.8")
+    testImplementation("org.testcontainers:testcontainers:1.19.8")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
