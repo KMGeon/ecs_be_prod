@@ -7,6 +7,10 @@ on:
         description: 'Image version tag (e.g., 0.2541.135 or latest)'
         required: true
         default: 'latest'
+  workflow_run:
+    workflows: ["Develop Server Integrator (CI)"]
+    types: [completed]
+    branches: [master]
 
 permissions:
   id-token: write
@@ -24,6 +28,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout
@@ -40,13 +45,29 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Get latest version from CI
+        id: get-version
+        if: github.event_name == 'workflow_run'
+        run: |
+          # CI에서 생성된 최신 태그를 가져옵니다
+          LATEST_TAG=$(git describe --tags --abbrev=0 --match "[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo "latest")
+          echo "version=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️ Using CI version: $LATEST_TAG"
+
       - name: Set image URI
         id: set-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          IMAGE_URI="${ECR_REGISTRY}/${{ env.ECR_REPOSITORY }}:${{ github.event.inputs.version }}"
+          # workflow_dispatch인 경우 입력값 사용, workflow_run인 경우 CI 태그 사용
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ steps.get-version.outputs.version }}"
+          fi
+          IMAGE_URI="${ECR_REGISTRY}/${{ env.ECR_REPOSITORY }}:${VERSION}"
           echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📦 Deploying image: $IMAGE_URI"
 
       - name: Fill in the new image ID in the Amazon ECS task definition
@@ -71,7 +92,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const version = '${{ github.event.inputs.version }}';
+            const version = '${{ steps.set-image.outputs.version }}';
             const tag = `ecs-deploy-${version}`;
             try {
               await github.rest.git.createRef({
@@ -96,4 +117,5 @@ jobs:
           echo "📦 Image: ${{ steps.set-image.outputs.image }}"
           echo "🎯 Service: ${{ env.ECS_SERVICE }}"
           echo "🏗️ Cluster: ${{ env.ECS_CLUSTER }}"
-          echo "🏷️ Tag: ecs-deploy-${{ github.event.inputs.version }}"
+          echo "🏷️ Tag: ecs-deploy-${{ steps.set-image.outputs.version }}"
+          echo "🤖 Triggered by: ${{ github.event_name }}"
