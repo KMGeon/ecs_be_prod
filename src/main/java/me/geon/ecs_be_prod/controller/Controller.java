@@ -60,12 +60,12 @@ public class Controller {
         return envInfo;
     }
 
-    // todo : for ha infra test api
-    @GetMapping("/crash")
-    public String crash() {
-        System.out.println("crashing server!");
-        System.exit(0);
-        return "Server is shutting down...";
-    }
+//    // todo : for ha infra test api
+//    @GetMapping("/crash")
+//    public String crash() {
+//        System.out.println("crashing server!");
+//        System.exit(0);
+//        return "Server is shutting down...";
+//    }
 
 }
